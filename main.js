@@ -40,21 +40,42 @@ toggleBtn.addEventListener('click', toggleTheme)
 todoInput.addEventListener('keydown', addTask)
 todoAddBtn.addEventListener('click', addTask)
 todoList.addEventListener('click', handleTodolistClicks)
-todoList.addEventListener('dragover', handleDragOver)
+todoList.addEventListener('dragover', handleDrag)
+todoList.addEventListener('touchstart', getDragElement)
+todoList.addEventListener('touchmove', handleDrag)
+todoList.addEventListener('touchend', removeDragElement)
 todoFooter.addEventListener('click', handleFooterClicks)
 
-function handleDragOver(e){
+
+function handleDrag(e){
   e.preventDefault();
+  if (!currentDragElement) return;
   currentTime = new Date().getTime();
   const time = currentTime - startTime;
   if (time > 150){
-    startTime = new Date().getTime();
-    const afterElement = getDragAfterElement(e.clientY);
+    startTime = currentTime;
+    const y = e.type == 'dragover'? e.clientY: e.touches[0].clientY;
+    const afterElement = getDragAfterElement(y);
     if (afterElement == null) {
         todoList.appendChild(currentDragElement);
     } else {
         todoList.insertBefore(currentDragElement, afterElement);
     }
+  }
+}
+
+function getDragElement(e){
+  if (e.target.classList.contains('todo')) {
+    currentDragElement = e.target;
+    currentDragElement.classList.add('dragging')
+    startTime = new Date().getTime();
+  }
+
+}
+function removeDragElement(e){
+  if (currentDragElement){
+    currentDragElement.classList.remove('dragging')
+    currentDragElement = null;
   }
 }
 
@@ -73,16 +94,6 @@ function getDragAfterElement(y) {
 }
 
 
-function getDragElement(e){
-  currentDragElement = this;
-  currentDragElement.classList.add('dragging')
-  startTime = new Date().getTime();
-}
-function removeDragElement(e){
-  currentDragElement.classList.remove('dragging')
-  currentDragElement = null;
-}
-
 
 function handleFooterClicks(e){
   const target = e.target;
@@ -90,24 +101,14 @@ function handleFooterClicks(e){
     const completedTodos = document.querySelectorAll('.todo-list .todo .state.completed')
     completedTodos.forEach(todo => todo.parentNode.remove());
   } else if (target.classList.contains('active')){
-    const completedTodos = document.querySelectorAll('.todo-list .todo .state.completed')
-    completedTodos.forEach(todo => todo.parentNode.style.display = "none");
-    const activeTodos = document.querySelectorAll('.todo-list .todo .state:not(.completed)')
-    activeTodos.forEach(todo => todo.parentNode.style.display = "grid");
-    document.querySelector('.todo-footer .todo-filters button.selected').classList.remove('selected')
-    target.classList.add('selected')
+    ["all", 'completed'].forEach(filter => todoList.classList.remove(filter))
+    todoList.classList.add("active")
   } else if (target.classList.contains('completed')){
-    const activeTodos = document.querySelectorAll('.todo-list .todo .state:not(.completed)')
-    activeTodos.forEach(todo => todo.parentNode.style.display = "none");
-    const completedTodos = document.querySelectorAll('.todo-list .todo .state.completed')
-    completedTodos.forEach(todo => todo.parentNode.style.display = "grid");
-    document.querySelector('.todo-footer .todo-filters button.selected').classList.remove('selected')
-    target.classList.add('selected')
+    ["all", 'active'].forEach(filter => todoList.classList.remove(filter))
+    todoList.classList.add("completed")
   } else if (target.classList.contains('all')){
-    const allTodos = document.querySelectorAll('.todo-list .todo')
-    document.querySelector('.todo-footer .todo-filters button.selected').classList.remove('selected')
-    target.classList.add('selected')
-    allTodos.forEach(todo => todo.style.display = "grid");    
+    ["completed", 'active'].forEach(filter => todoList.classList.remove(filter))
+    todoList.classList.add("all") 
   }
 }
 
@@ -150,7 +151,7 @@ function createTodo(state, text){
                     <p>${text}</p>
                     <img src="./images/icon-cross.svg" class="remove-icon" alt="">`
   todo.addEventListener('dragstart', getDragElement)          
-  todo.addEventListener('dragend', removeDragElement)          
+  todo.addEventListener('dragend', removeDragElement)                  
   return todo;
 }
 

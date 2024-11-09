@@ -41,6 +41,16 @@ body{
 button{
   font-family: 'josefin-sans', sans-serif;
 }
+
+.info{
+  position: fixed;
+  top: 0;
+  right: 0;
+  background-color: white;
+  color: black;
+  padding: 1rem;
+  font-size: 2rem;
+}
 .wrapper{
   max-width: 1440px;
 }
@@ -148,7 +158,7 @@ main{
 .todo-app .app-body .todo .state input{
   display: none;
 }
-.todo-app .app-body .todo-list .todo .state:has(input:checked) {
+.todo-app .app-body .todo-list .todo .state.completed {
   border-color: none;
   background: url(./images/icon-check.svg), linear-gradient(135deg, hsl(192, 100%, 67%), hsl(280, 87%, 65%));
   background-repeat: no-repeat;
@@ -156,9 +166,10 @@ main{
 }
 .todo-app .app-body .todo-list .todo p{
   font-size: 1.1rem;
+  user-select: none;
   color: var(--text-clr);
 }
-.todo-app .app-body .todo-list .todo .state:has(input:checked) + p{
+.todo-app .app-body .todo-list .todo .state.completed + p{
   text-decoration: line-through;
   color: var(--border-clr);
 }
@@ -170,6 +181,10 @@ main{
   pointer-events: all;
   visibility: visible;
   cursor: pointer;
+}
+.todo-app .app-body .todo-list.active .todo:has(.state.completed),
+.todo-app .app-body .todo-list.completed .todo:has(.state:not(.completed)){
+  display: none;
 }
 
 
@@ -200,7 +215,9 @@ main{
   font-size: .81rem;
   color: var(--btns-clr);
 }
-.todo-app .app-body .todo-footer button.selected{
+.todo-app .app-body .todo-list.all + .todo-footer .todo-filters button:first-child,
+.todo-app .app-body .todo-list.active + .todo-footer .todo-filters button:nth-child(2),
+.todo-app .app-body .todo-list.completed + .todo-footer .todo-filters button:last-child{
   color: var(--Bright-Blue);
 }
 .todo-app .app-body .todo-footer button:not(.selected):hover{
