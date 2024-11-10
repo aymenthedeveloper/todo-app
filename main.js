@@ -5,32 +5,39 @@ const todoList = document.querySelector('.todo-app .app-body .todo-list')
 const todoFooter = document.querySelector('.todo-app .app-body .todo-footer')
 const itemsLeftElement = document.querySelector('.todo-app .app-body .todo-footer .todo-count .count')
 let itemsLeftNumber = 0;
-let startTime, currentTime;
+let startTime, currentTime, lastId;
 let currentDragElement;
 
 
-const todos = [
+
+let todos = [
   {
+    id: 0,
     completed: true,
     text: 'Complete online JavaScript course'
   },
   {
+    id: 1,
     completed: false,
     text: 'Jog around the park 3x'
   },
   {
+    id: 2,
     completed: false,
     text: '10 minutes meditation'
   },
   {
+    id: 3,
     completed: false,
     text: 'Read for 1 hour'
   },
   {
+    id: 4,
     completed: false,
     text: 'Pick up groceries'
   },
   {
+    id: 5,
     completed: false,
     text: 'Complete Todo App on Frontend Mentor'
   },
@@ -50,10 +57,11 @@ todoFooter.addEventListener('click', handleFooterClicks)
 function handleDrag(e){
   e.preventDefault();
   if (!currentDragElement) return;
-  currentTime = new Date().getTime();
-  const time = currentTime - startTime;
-  if (time > 150){
+  currentTime = performance.now();
+  const elapsedTime = currentTime - startTime;
+  if (elapsedTime > 150){
     startTime = currentTime;
+    if (!currentDragElement.classList.contains('dragging')) currentDragElement.classList.add('dragging')
     const y = e.type == 'dragover'? e.clientY: e.touches[0].clientY;
     const afterElement = getDragAfterElement(y);
     if (afterElement == null) {
@@ -67,8 +75,7 @@ function handleDrag(e){
 function getDragElement(e){
   if (e.target.classList.contains('todo')) {
     currentDragElement = e.target;
-    currentDragElement.classList.add('dragging')
-    startTime = new Date().getTime();
+    startTime = performance.now();
   }
 
 }
@@ -97,9 +104,15 @@ function getDragAfterElement(y) {
 
 function handleFooterClicks(e){
   const target = e.target;
-  if (target.classList.contains('claer-completed-btn')){
+  if (target.classList.contains('clear-completed-btn')){
     const completedTodos = document.querySelectorAll('.todo-list .todo .state.completed')
-    completedTodos.forEach(todo => todo.parentNode.remove());
+    completedTodos.forEach(todo => {
+      let todoObj = todo.parentNode;
+      todoObj.remove()
+
+    });
+    todos = todos.filter(todo => !todo.completed)
+    localStorage.setItem("db", JSON.stringify({allTodos: todos}))
   } else if (target.classList.contains('active')){
     ["all", 'completed'].forEach(filter => todoList.classList.remove(filter))
     todoList.classList.add("active")
@@ -111,43 +124,70 @@ function handleFooterClicks(e){
     todoList.classList.add("all") 
   }
 }
-
-function handleTodolistClicks(e){  
-  const target = e.target;
-  
-  if (target.classList.contains('remove-icon')){
-    const todo = target.parentNode;
-    const completed = todo.children[0].classList.contains('completed');
-    todo.remove()
-    if (!completed) itemsLeftElement.textContent = --itemsLeftNumber
-  } else if (target.classList.contains('state')){
-    const todo = target.parentNode;
-    const completed = target.classList.contains('completed');
-    if (completed){
-      target.classList.remove('completed');
-      itemsLeftElement.textContent = ++itemsLeftNumber
-    } else {
-      target.classList.add('completed')
-      itemsLeftElement.textContent = --itemsLeftNumber
+function removeTodo(todoObj){
+  const stateObj = todoObj.firstElementChild;
+  const todoId = +todoObj.dataset.id;
+  todos = todos.filter(todo => todo.id != todoId)
+  todoObj.remove()
+  const completed = stateObj.classList.contains('completed');
+  if (!completed) itemsLeftElement.textContent = --itemsLeftNumber
+}
+function ChangeTodoState(todoObj, stateObj){
+  const todoId = +todoObj.dataset.id;
+  const completed = stateObj.classList.contains('completed');
+  if (completed){
+    itemsLeftElement.textContent = ++itemsLeftNumber;
+    checkTodo(todoId, false)
+  } else {
+    itemsLeftElement.textContent = --itemsLeftNumber;
+    checkTodo(todoId, true)
+  }
+  stateObj.classList.toggle('completed');
+}
+function checkTodo(todoId, state){
+  for (let i = 0, len = todos.length; i < len; i++) {
+    if (todos[i].id == todoId) {
+      todos[i].completed = state;
+      
+      return;
     }
   }
 }
 
+function handleTodolistClicks(e){  
+  const target = e.target;
+  if (target.classList.contains('remove-icon')){
+    removeTodo(target.parentNode)
+  } else if (target.classList.contains('state')){
+    ChangeTodoState(target.parentNode, target) 
+  }
+  localStorage.setItem("db", JSON.stringify({allTodos: todos}))
+}
+
 function addTask(e){
   if ((this == todoAddBtn && todoInput.value) || (e.keyCode == "13" && todoInput.value)){
-    const todo = createTodo(false, todoInput.value)
-    todoList.appendChild(todo);
+    const todo = {
+      id: ++lastId,
+      completed: false,
+      text: todoInput.value
+    }
+    todos.push(todo)
+    localStorage.setItem("db", JSON.stringify({allTodos: todos}))
+    const todoObj = createTodo(todo)
+    todoList.appendChild(todoObj);
     todoInput.value = null;
     itemsLeftElement.textContent = ++itemsLeftNumber
   }
 }
 
 
-function createTodo(state, text){
-  const todo = document.createElement('div');
+function createTodo(todo){
+  const {id, completed, text} = todo;
+  todo = document.createElement('div');
   todo.classList.add('todo');
   todo.draggable = true;
-  todo.innerHTML =`<label class="state ${state? 'completed': ''}"><input type="checkbox" ${state? 'checked="true"': ''}></label>
+  todo.setAttribute('data-id', id)
+  todo.innerHTML =`<label class="state ${completed? 'completed': ''}"><input type="checkbox" ${completed? 'checked="true"': ''}></label>
                     <p>${text}</p>
                     <img src="./images/icon-cross.svg" class="remove-icon" alt="">`
   todo.addEventListener('dragstart', getDragElement)          
@@ -179,13 +219,31 @@ function checkUserPreference() {
   }
 }
 
-
-
-document.addEventListener('DOMContentLoaded', ()=>{
-  checkUserPreference()
-  todos.forEach(todo =>{
-    todoList.insertAdjacentElement('beforeend', createTodo(todo.completed, todo.text))
-    !todo.completed && itemsLeftNumber++
-  })
+function loadTodos(){
+  let db = localStorage.getItem('db');
+  if (db == null){
+    console.log('not from local storag');
+    todos.forEach(todo =>{
+      todoList.insertAdjacentElement('beforeend', createTodo(todo))
+      !todo.completed && itemsLeftNumber++
+      lastId = todo.id;
+    })
+    localStorage.setItem("db", JSON.stringify({allTodos: todos}))
+  } else {
+    console.log('from local storag');
+    db = JSON.parse(db)
+    todos = db.allTodos;
+    todos.forEach(todo =>{
+      todoList.insertAdjacentElement('beforeend', createTodo(todo))
+      !todo.completed && itemsLeftNumber++
+      lastId = todo.id;
+    })
+  }
   itemsLeftElement.textContent = itemsLeftNumber;
-})
+}
+
+
+
+
+loadTodos()
+checkUserPreference()
