@@ -222,7 +222,6 @@ function checkUserPreference() {
 function loadTodos(){
   let db = localStorage.getItem('db');
   if (db == null){
-    console.log('not from local storag');
     todos.forEach(todo =>{
       todoList.insertAdjacentElement('beforeend', createTodo(todo))
       !todo.completed && itemsLeftNumber++
@@ -230,7 +229,6 @@ function loadTodos(){
     })
     localStorage.setItem("db", JSON.stringify({allTodos: todos}))
   } else {
-    console.log('from local storag');
     db = JSON.parse(db)
     todos = db.allTodos;
     todos.forEach(todo =>{
